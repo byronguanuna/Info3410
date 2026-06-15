@@ -1,0 +1,20 @@
+# Editors and local environment
+.vscode/
+.env
+*.user
+*.suo
+*.sqlproj.user
+
+# SQL Server local database and backup files
+*.mdf
+*.ldf
+*.bak
+sql/Test.sql
+
+# Temporary and generated files
+*.log
+*.tmp
+Thumbs.db
+.DS_Store
+~$*
+

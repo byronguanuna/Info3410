@@ -1,0 +1,247 @@
+// Burgers & Fries transactional schema for dbdiagram.io
+
+Table LocationType {
+  LocationTypeID int [pk, increment]
+  LocationTypeName varchar(50) [not null, unique]
+  Description varchar(250)
+  IsActive bit [not null, default: 1]
+}
+
+Table Location {
+  LocationID int [pk, increment]
+  LocationTypeID int [not null]
+  ParentLocationID int
+  LocationCode varchar(30) [not null, unique]
+  LocationName varchar(100) [not null]
+  AddressLine1 varchar(150) [not null]
+  AddressLine2 varchar(150)
+  City varchar(100) [not null]
+  StateCode char(2) [not null]
+  PostalCode varchar(10) [not null]
+  Phone varchar(25)
+  Email varchar(254)
+  IsActive bit [not null, default: 1]
+  CreatedAt datetime2 [not null]
+
+  Note: 'ParentLocationID cannot equal LocationID. Parent-type validation is deferred.'
+}
+
+Table ProductCategory {
+  ProductCategoryID int [pk, increment]
+  CategoryName varchar(75) [not null, unique]
+  CategoryGroup varchar(25) [not null]
+  IsActive bit [not null, default: 1]
+}
+
+Table UnitOfMeasure {
+  UnitOfMeasureID int [pk, increment]
+  UnitName varchar(50) [not null, unique]
+  Abbreviation varchar(15) [not null, unique]
+}
+
+Table Product {
+  ProductID int [pk, increment]
+  ProductSKU varchar(40) [not null, unique]
+  ProductName varchar(100) [not null]
+  ProductCategoryID int [not null]
+  UnitOfMeasureID int [not null]
+  Description varchar(500)
+  StorageType varchar(20) [not null, default: 'Ambient']
+  IsPerishable bit [not null, default: 0]
+  StandardUnitCost decimal(12,2)
+  IsActive bit [not null, default: 1]
+  CreatedAt datetime2 [not null]
+}
+
+Table Inventory {
+  LocationID int [not null]
+  ProductID int [not null]
+  QuantityOnHand decimal(12,2) [not null, default: 0]
+  ReorderPoint decimal(12,2) [not null, default: 0]
+  TargetStockLevel decimal(12,2) [not null, default: 0]
+  LastUpdated datetime2 [not null]
+
+  indexes {
+    (LocationID, ProductID) [pk]
+  }
+}
+
+Table AppRole {
+  RoleID int [pk, increment]
+  RoleName varchar(50) [not null, unique]
+  Description varchar(250)
+  IsActive bit [not null, default: 1]
+}
+
+Table AppUser {
+  UserID int [pk, increment]
+  Username varchar(75) [not null, unique]
+  DisplayName varchar(100) [not null]
+  Email varchar(254) [unique, note: 'SQL uses a filtered unique index when present.']
+  IsActive bit [not null, default: 1]
+  CreatedAt datetime2 [not null]
+}
+
+Table UserLocationAccess {
+  UserID int [not null]
+  LocationID int [not null]
+  RoleID int [not null]
+  GrantedAt datetime2 [not null]
+
+  indexes {
+    (UserID, LocationID, RoleID) [pk]
+  }
+}
+
+Table InventoryRequest {
+  RequestID int [pk, increment]
+  RequestingLocationID int [not null]
+  FulfillingLocationID int [not null]
+  RequestedByUserID int [not null]
+  RequestDate datetime2 [not null]
+  NeededByDate date
+  RequestStatus varchar(25) [not null, default: 'Draft']
+  IsEmergency bit [not null, default: 0]
+  ApprovedByUserID int
+  ApprovedDate datetime2
+  Notes varchar(1000)
+}
+
+Table InventoryRequestLine {
+  RequestLineID int [pk, increment]
+  RequestID int [not null]
+  ProductID int [not null]
+  QuantityRequested decimal(12,2) [not null]
+  QuantityApproved decimal(12,2)
+  QuantityFulfilled decimal(12,2) [not null, default: 0]
+
+  indexes {
+    (RequestID, ProductID) [unique]
+  }
+}
+
+Table Shipment {
+  ShipmentID int [pk, increment]
+  RequestID int
+  FromLocationID int [not null]
+  ToLocationID int [not null]
+  CreatedByUserID int [not null]
+  ShipmentStatus varchar(20) [not null, default: 'Preparing']
+  IsEmergency bit [not null, default: 0]
+  CreatedAt datetime2 [not null]
+  ScheduledShipDate date
+  ShippedAt datetime2
+  ExpectedDeliveryDate date
+  ReceivedAt datetime2
+  ReceivedByUserID int
+  TrackingReference varchar(100)
+  Notes varchar(1000)
+}
+
+Table ShipmentLine {
+  ShipmentLineID int [pk, increment]
+  ShipmentID int [not null]
+  ProductID int [not null]
+  QuantityShipped decimal(12,2) [not null]
+  QuantityReceived decimal(12,2)
+  UnitCostAtShipment decimal(12,2)
+
+  indexes {
+    (ShipmentID, ProductID) [unique]
+  }
+}
+
+Table InventoryMovementType {
+  MovementTypeID int [pk, increment]
+  MovementTypeName varchar(50) [not null, unique]
+  Description varchar(250)
+  IsActive bit [not null, default: 1]
+}
+
+Table InventoryMovement {
+  MovementID int [pk, increment]
+  MovementTypeID int [not null]
+  MovementDate datetime2 [not null]
+  ProductID int [not null]
+  FromLocationID int
+  ToLocationID int
+  Quantity decimal(12,2) [not null]
+  UnitCost decimal(12,2)
+  ShipmentLineID int
+  PerformedByUserID int [not null]
+  Notes varchar(1000)
+  CreatedAt datetime2 [not null]
+
+  Note: 'At least one location is required; source and destination cannot be identical.'
+}
+
+Ref: Location.LocationTypeID > LocationType.LocationTypeID
+Ref: Location.ParentLocationID > Location.LocationID
+
+Ref: Product.ProductCategoryID > ProductCategory.ProductCategoryID
+Ref: Product.UnitOfMeasureID > UnitOfMeasure.UnitOfMeasureID
+Ref: Inventory.LocationID > Location.LocationID
+Ref: Inventory.ProductID > Product.ProductID
+
+Ref: UserLocationAccess.UserID > AppUser.UserID
+Ref: UserLocationAccess.LocationID > Location.LocationID
+Ref: UserLocationAccess.RoleID > AppRole.RoleID
+
+Ref: InventoryRequest.RequestingLocationID > Location.LocationID
+Ref: InventoryRequest.FulfillingLocationID > Location.LocationID
+Ref: InventoryRequest.RequestedByUserID > AppUser.UserID
+Ref: InventoryRequest.ApprovedByUserID > AppUser.UserID
+Ref: InventoryRequestLine.RequestID > InventoryRequest.RequestID
+Ref: InventoryRequestLine.ProductID > Product.ProductID
+
+Ref: Shipment.RequestID > InventoryRequest.RequestID
+Ref: Shipment.FromLocationID > Location.LocationID
+Ref: Shipment.ToLocationID > Location.LocationID
+Ref: Shipment.CreatedByUserID > AppUser.UserID
+Ref: Shipment.ReceivedByUserID > AppUser.UserID
+Ref: ShipmentLine.ShipmentID > Shipment.ShipmentID
+Ref: ShipmentLine.ProductID > Product.ProductID
+
+Ref: InventoryMovement.MovementTypeID > InventoryMovementType.MovementTypeID
+Ref: InventoryMovement.ProductID > Product.ProductID
+Ref: InventoryMovement.FromLocationID > Location.LocationID
+Ref: InventoryMovement.ToLocationID > Location.LocationID
+Ref: InventoryMovement.ShipmentLineID > ShipmentLine.ShipmentLineID
+Ref: InventoryMovement.PerformedByUserID > AppUser.UserID
+
+TableGroup Locations {
+  LocationType
+  Location
+}
+
+TableGroup Products {
+  ProductCategory
+  UnitOfMeasure
+  Product
+}
+
+TableGroup CurrentInventory {
+  Inventory
+}
+
+TableGroup AuthorizedUsers {
+  AppRole
+  AppUser
+  UserLocationAccess
+}
+
+TableGroup Requests {
+  InventoryRequest
+  InventoryRequestLine
+}
+
+TableGroup Shipments {
+  Shipment
+  ShipmentLine
+}
+
+TableGroup InventoryMovements {
+  InventoryMovementType
+  InventoryMovement
+}
+
