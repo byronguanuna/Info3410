@@ -45,27 +45,57 @@ automation logic, presentation, or large sample dataset.
 
 ```text
 Relationship Summary
+
+- Fact_Inventory_Movement (CENTER FACT TABLE)
+  - fact_id (PK)
+  - location_id (FK)
+  - product_id (FK)
+  - user_id (FK)
+  - date_id (FK)
+  - quantity
+  - transaction_type
+  - cost
+
 - Dim_Location → Fact_Inventory_Movement
+  One location can have many inventory transactions
+  location_id (PK)
 
-One location can have many inventory transactions
 - Dim_Product → Fact_Inventory_Movement
+  One product can appear in many transactions
+  product_id (PK)
 
-One product can appear in many transactions
 - Dim_User → Fact_Inventory_Movement
+  One user can record many transactions
+  user_id (PK)
 
-One user can record many transactions
 - Dim_Date → Fact_Inventory_Movement
+  One date can contain many transactions
+  date_id (PK)
 
-One date can contain many transactions
 - Fact_Inventory_Movement → Aggregate_Inventory_Summary
+  Aggregate table is derived from fact data (summary reporting layer)
 
-Aggregate table is derived from fact data (summary reporting layer)
+  Aggregate_Inventory_Summary:
+  - summary_id (PK)
+  - location_id
+  - product_id
+  - total_quantity
+  - total_cost
+  - transaction_count
+
 
 Key Structure Notes
-- Fact table sits at the center of the model
-- Dimension tables provide descriptive context
-- Aggregate table improves reporting performance
-- This follows a standard data warehouse star schema design
+
+- Fact table sits at the center of the model (star schema design)
+- Dimension tables provide descriptive context:
+  - Dim_Location (location_name, location_type, contact_info, parent_location_id)
+  - Dim_Product (product_name, product_category)
+  - Dim_User (username)
+  - Dim_Date (full_date, day, month, year)
+
+- All dimension tables connect 1-to-many into Fact_Inventory_Movement
+- Aggregate table is derived from fact table for reporting performance
+- This follows a standard data warehouse STAR SCHEMA design
 ```
 
 ## Running the Scripts
