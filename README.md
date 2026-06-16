@@ -43,7 +43,7 @@ automation logic, presentation, or large sample dataset.
 
 ## ER Diagram
 
-'''text
+```text
 Relationship Summary
 - Dim_Location → Fact_Inventory_Movement
 One location can have many inventory transactions
@@ -61,7 +61,7 @@ Key Structure Notes
 - Dimension tables provide descriptive context
 - Aggregate table improves reporting performance
 - This follows a standard data warehouse star schema design
-'''
+```
 
 ## Running the Scripts
 
