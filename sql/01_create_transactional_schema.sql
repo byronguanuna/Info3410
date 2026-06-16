@@ -1,9 +1,11 @@
 /*
-    Burgers & Fries transactional database foundation
+    Burgers & Fries Supply System
+    Reduced transactional database foundation for INFO 3410
     Microsoft SQL Server / T-SQL
 
-    This clean-build script drops and recreates only this project's
-    transactional tables. Run it in a local project database.
+    Clean-build warning:
+    This script drops and recreates this project's views and tables.
+    Running it will remove data stored in these project tables.
 */
 
 USE BurgersAndFries;
@@ -12,20 +14,21 @@ GO
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 
+DROP VIEW IF EXISTS dbo.vw_OpenInventoryRequests;
+DROP VIEW IF EXISTS dbo.vw_LowStockInventory;
+DROP VIEW IF EXISTS dbo.vw_CurrentInventory;
+
 BEGIN TRANSACTION;
 
-/* Drop tables in reverse dependency order for repeatable development builds. */
-DROP TABLE IF EXISTS dbo.InventoryMovement;
+/* Drop current project tables in reverse dependency order. */
 DROP TABLE IF EXISTS dbo.ShipmentLine;
 DROP TABLE IF EXISTS dbo.Shipment;
 DROP TABLE IF EXISTS dbo.InventoryRequestLine;
 DROP TABLE IF EXISTS dbo.InventoryRequest;
-DROP TABLE IF EXISTS dbo.UserLocationAccess;
+DROP TABLE IF EXISTS dbo.Employee;
+DROP TABLE IF EXISTS dbo.EmployeeRole;
 DROP TABLE IF EXISTS dbo.Inventory;
 DROP TABLE IF EXISTS dbo.Product;
-DROP TABLE IF EXISTS dbo.InventoryMovementType;
-DROP TABLE IF EXISTS dbo.AppUser;
-DROP TABLE IF EXISTS dbo.AppRole;
 DROP TABLE IF EXISTS dbo.UnitOfMeasure;
 DROP TABLE IF EXISTS dbo.ProductCategory;
 DROP TABLE IF EXISTS dbo.Location;
@@ -129,7 +132,7 @@ CREATE TABLE dbo.Product
         (StandardUnitCost IS NULL OR StandardUnitCost >= 0)
 );
 
-/* Current inventory balances */
+/* Current inventory */
 CREATE TABLE dbo.Inventory
 (
     LocationID INT NOT NULL,
@@ -154,54 +157,43 @@ CREATE TABLE dbo.Inventory
     CONSTRAINT CK_Inventory_TargetAtLeastReorder CHECK (TargetStockLevel >= ReorderPoint)
 );
 
-/* Authorized users */
-CREATE TABLE dbo.AppRole
+/* Employees */
+CREATE TABLE dbo.EmployeeRole
 (
-    RoleID INT IDENTITY(1,1) NOT NULL,
+    EmployeeRoleID INT IDENTITY(1,1) NOT NULL,
     RoleName VARCHAR(50) NOT NULL,
     Description VARCHAR(250) NULL,
     IsActive BIT NOT NULL
-        CONSTRAINT DF_AppRole_IsActive DEFAULT (1),
+        CONSTRAINT DF_EmployeeRole_IsActive DEFAULT (1),
 
-    CONSTRAINT PK_AppRole PRIMARY KEY (RoleID),
-    CONSTRAINT UQ_AppRole_RoleName UNIQUE (RoleName)
+    CONSTRAINT PK_EmployeeRole PRIMARY KEY (EmployeeRoleID),
+    CONSTRAINT UQ_EmployeeRole_RoleName UNIQUE (RoleName)
 );
 
-CREATE TABLE dbo.AppUser
+CREATE TABLE dbo.Employee
 (
-    UserID INT IDENTITY(1,1) NOT NULL,
-    Username VARCHAR(75) NOT NULL,
-    DisplayName VARCHAR(100) NOT NULL,
+    EmployeeID INT IDENTITY(1,1) NOT NULL,
+    EmployeeRoleID INT NOT NULL,
+    LocationID INT NULL,
+    FirstName VARCHAR(50) NOT NULL,
+    LastName VARCHAR(50) NOT NULL,
     Email VARCHAR(254) NULL,
+    Phone VARCHAR(25) NULL,
     IsActive BIT NOT NULL
-        CONSTRAINT DF_AppUser_IsActive DEFAULT (1),
+        CONSTRAINT DF_Employee_IsActive DEFAULT (1),
     CreatedAt DATETIME2 NOT NULL
-        CONSTRAINT DF_AppUser_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT DF_Employee_CreatedAt DEFAULT (SYSUTCDATETIME()),
 
-    CONSTRAINT PK_AppUser PRIMARY KEY (UserID),
-    CONSTRAINT UQ_AppUser_Username UNIQUE (Username)
+    CONSTRAINT PK_Employee PRIMARY KEY (EmployeeID),
+    CONSTRAINT FK_Employee_EmployeeRole FOREIGN KEY (EmployeeRoleID)
+        REFERENCES dbo.EmployeeRole (EmployeeRoleID),
+    CONSTRAINT FK_Employee_Location FOREIGN KEY (LocationID)
+        REFERENCES dbo.Location (LocationID)
 );
 
-CREATE UNIQUE INDEX UX_AppUser_Email
-    ON dbo.AppUser (Email)
+CREATE UNIQUE INDEX UX_Employee_Email
+    ON dbo.Employee (Email)
     WHERE Email IS NOT NULL;
-
-CREATE TABLE dbo.UserLocationAccess
-(
-    UserID INT NOT NULL,
-    LocationID INT NOT NULL,
-    RoleID INT NOT NULL,
-    GrantedAt DATETIME2 NOT NULL
-        CONSTRAINT DF_UserLocationAccess_GrantedAt DEFAULT (SYSUTCDATETIME()),
-
-    CONSTRAINT PK_UserLocationAccess PRIMARY KEY (UserID, LocationID, RoleID),
-    CONSTRAINT FK_UserLocationAccess_AppUser FOREIGN KEY (UserID)
-        REFERENCES dbo.AppUser (UserID),
-    CONSTRAINT FK_UserLocationAccess_Location FOREIGN KEY (LocationID)
-        REFERENCES dbo.Location (LocationID),
-    CONSTRAINT FK_UserLocationAccess_AppRole FOREIGN KEY (RoleID)
-        REFERENCES dbo.AppRole (RoleID)
-);
 
 /* Inventory requests */
 CREATE TABLE dbo.InventoryRequest
@@ -209,7 +201,7 @@ CREATE TABLE dbo.InventoryRequest
     RequestID INT IDENTITY(1,1) NOT NULL,
     RequestingLocationID INT NOT NULL,
     FulfillingLocationID INT NOT NULL,
-    RequestedByUserID INT NOT NULL,
+    RequestedByEmployeeID INT NOT NULL,
     RequestDate DATETIME2 NOT NULL
         CONSTRAINT DF_InventoryRequest_RequestDate DEFAULT (SYSUTCDATETIME()),
     NeededByDate DATE NULL,
@@ -217,7 +209,7 @@ CREATE TABLE dbo.InventoryRequest
         CONSTRAINT DF_InventoryRequest_RequestStatus DEFAULT ('Draft'),
     IsEmergency BIT NOT NULL
         CONSTRAINT DF_InventoryRequest_IsEmergency DEFAULT (0),
-    ApprovedByUserID INT NULL,
+    ApprovedByEmployeeID INT NULL,
     ApprovedDate DATETIME2 NULL,
     Notes VARCHAR(1000) NULL,
 
@@ -226,10 +218,10 @@ CREATE TABLE dbo.InventoryRequest
         REFERENCES dbo.Location (LocationID),
     CONSTRAINT FK_InventoryRequest_FulfillingLocation FOREIGN KEY (FulfillingLocationID)
         REFERENCES dbo.Location (LocationID),
-    CONSTRAINT FK_InventoryRequest_RequestedByUser FOREIGN KEY (RequestedByUserID)
-        REFERENCES dbo.AppUser (UserID),
-    CONSTRAINT FK_InventoryRequest_ApprovedByUser FOREIGN KEY (ApprovedByUserID)
-        REFERENCES dbo.AppUser (UserID),
+    CONSTRAINT FK_InventoryRequest_RequestedByEmployee FOREIGN KEY (RequestedByEmployeeID)
+        REFERENCES dbo.Employee (EmployeeID),
+    CONSTRAINT FK_InventoryRequest_ApprovedByEmployee FOREIGN KEY (ApprovedByEmployeeID)
+        REFERENCES dbo.Employee (EmployeeID),
     CONSTRAINT CK_InventoryRequest_DifferentLocations CHECK
         (RequestingLocationID <> FulfillingLocationID),
     CONSTRAINT CK_InventoryRequest_NeededByDate CHECK
@@ -257,9 +249,9 @@ CREATE TABLE dbo.InventoryRequestLine
     CONSTRAINT CK_InventoryRequestLine_QuantityRequested CHECK (QuantityRequested > 0),
     CONSTRAINT CK_InventoryRequestLine_QuantityApproved CHECK
         (QuantityApproved IS NULL OR QuantityApproved >= 0),
-    CONSTRAINT CK_InventoryRequestLine_QuantityFulfilled CHECK (QuantityFulfilled >= 0),
     CONSTRAINT CK_InventoryRequestLine_ApprovedNotOverRequested CHECK
         (QuantityApproved IS NULL OR QuantityApproved <= QuantityRequested),
+    CONSTRAINT CK_InventoryRequestLine_QuantityFulfilled CHECK (QuantityFulfilled >= 0),
     CONSTRAINT CK_InventoryRequestLine_FulfilledNotOverRequested CHECK
         (QuantityFulfilled <= QuantityRequested),
     CONSTRAINT CK_InventoryRequestLine_FulfilledNotOverApproved CHECK
@@ -273,18 +265,16 @@ CREATE TABLE dbo.Shipment
     RequestID INT NULL,
     FromLocationID INT NOT NULL,
     ToLocationID INT NOT NULL,
-    CreatedByUserID INT NOT NULL,
+    CreatedByEmployeeID INT NOT NULL,
     ShipmentStatus VARCHAR(20) NOT NULL
         CONSTRAINT DF_Shipment_ShipmentStatus DEFAULT ('Preparing'),
-    IsEmergency BIT NOT NULL
-        CONSTRAINT DF_Shipment_IsEmergency DEFAULT (0),
     CreatedAt DATETIME2 NOT NULL
         CONSTRAINT DF_Shipment_CreatedAt DEFAULT (SYSUTCDATETIME()),
     ScheduledShipDate DATE NULL,
     ShippedAt DATETIME2 NULL,
     ExpectedDeliveryDate DATE NULL,
     ReceivedAt DATETIME2 NULL,
-    ReceivedByUserID INT NULL,
+    ReceivedByEmployeeID INT NULL,
     TrackingReference VARCHAR(100) NULL,
     Notes VARCHAR(1000) NULL,
 
@@ -295,10 +285,10 @@ CREATE TABLE dbo.Shipment
         REFERENCES dbo.Location (LocationID),
     CONSTRAINT FK_Shipment_ToLocation FOREIGN KEY (ToLocationID)
         REFERENCES dbo.Location (LocationID),
-    CONSTRAINT FK_Shipment_CreatedByUser FOREIGN KEY (CreatedByUserID)
-        REFERENCES dbo.AppUser (UserID),
-    CONSTRAINT FK_Shipment_ReceivedByUser FOREIGN KEY (ReceivedByUserID)
-        REFERENCES dbo.AppUser (UserID),
+    CONSTRAINT FK_Shipment_CreatedByEmployee FOREIGN KEY (CreatedByEmployeeID)
+        REFERENCES dbo.Employee (EmployeeID),
+    CONSTRAINT FK_Shipment_ReceivedByEmployee FOREIGN KEY (ReceivedByEmployeeID)
+        REFERENCES dbo.Employee (EmployeeID),
     CONSTRAINT CK_Shipment_DifferentLocations CHECK
         (FromLocationID <> ToLocationID),
     CONSTRAINT CK_Shipment_ShipmentStatus CHECK
@@ -328,62 +318,104 @@ CREATE TABLE dbo.ShipmentLine
     CONSTRAINT CK_ShipmentLine_QuantityShipped CHECK (QuantityShipped > 0),
     CONSTRAINT CK_ShipmentLine_QuantityReceived CHECK
         (QuantityReceived IS NULL OR QuantityReceived >= 0),
-    CONSTRAINT CK_ShipmentLine_UnitCostAtShipment CHECK
-        (UnitCostAtShipment IS NULL OR UnitCostAtShipment >= 0),
     CONSTRAINT CK_ShipmentLine_ReceivedNotOverShipped CHECK
-        (QuantityReceived IS NULL OR QuantityReceived <= QuantityShipped)
-);
-
-/* Historical inventory activity */
-CREATE TABLE dbo.InventoryMovementType
-(
-    MovementTypeID INT IDENTITY(1,1) NOT NULL,
-    MovementTypeName VARCHAR(50) NOT NULL,
-    Description VARCHAR(250) NULL,
-    IsActive BIT NOT NULL
-        CONSTRAINT DF_InventoryMovementType_IsActive DEFAULT (1),
-
-    CONSTRAINT PK_InventoryMovementType PRIMARY KEY (MovementTypeID),
-    CONSTRAINT UQ_InventoryMovementType_MovementTypeName UNIQUE (MovementTypeName)
-);
-
-CREATE TABLE dbo.InventoryMovement
-(
-    MovementID INT IDENTITY(1,1) NOT NULL,
-    MovementTypeID INT NOT NULL,
-    MovementDate DATETIME2 NOT NULL,
-    ProductID INT NOT NULL,
-    FromLocationID INT NULL,
-    ToLocationID INT NULL,
-    Quantity DECIMAL(12,2) NOT NULL,
-    UnitCost DECIMAL(12,2) NULL,
-    ShipmentLineID INT NULL,
-    PerformedByUserID INT NOT NULL,
-    Notes VARCHAR(1000) NULL,
-    CreatedAt DATETIME2 NOT NULL
-        CONSTRAINT DF_InventoryMovement_CreatedAt DEFAULT (SYSUTCDATETIME()),
-
-    CONSTRAINT PK_InventoryMovement PRIMARY KEY (MovementID),
-    CONSTRAINT FK_InventoryMovement_MovementType FOREIGN KEY (MovementTypeID)
-        REFERENCES dbo.InventoryMovementType (MovementTypeID),
-    CONSTRAINT FK_InventoryMovement_Product FOREIGN KEY (ProductID)
-        REFERENCES dbo.Product (ProductID),
-    CONSTRAINT FK_InventoryMovement_FromLocation FOREIGN KEY (FromLocationID)
-        REFERENCES dbo.Location (LocationID),
-    CONSTRAINT FK_InventoryMovement_ToLocation FOREIGN KEY (ToLocationID)
-        REFERENCES dbo.Location (LocationID),
-    CONSTRAINT FK_InventoryMovement_ShipmentLine FOREIGN KEY (ShipmentLineID)
-        REFERENCES dbo.ShipmentLine (ShipmentLineID),
-    CONSTRAINT FK_InventoryMovement_PerformedByUser FOREIGN KEY (PerformedByUserID)
-        REFERENCES dbo.AppUser (UserID),
-    CONSTRAINT CK_InventoryMovement_Quantity CHECK (Quantity > 0),
-    CONSTRAINT CK_InventoryMovement_UnitCost CHECK
-        (UnitCost IS NULL OR UnitCost >= 0),
-    CONSTRAINT CK_InventoryMovement_HasLocation CHECK
-        (FromLocationID IS NOT NULL OR ToLocationID IS NOT NULL),
-    CONSTRAINT CK_InventoryMovement_DifferentLocations CHECK
-        (FromLocationID IS NULL OR ToLocationID IS NULL OR FromLocationID <> ToLocationID)
+        (QuantityReceived IS NULL OR QuantityReceived <= QuantityShipped),
+    CONSTRAINT CK_ShipmentLine_UnitCostAtShipment CHECK
+        (UnitCostAtShipment IS NULL OR UnitCostAtShipment >= 0)
 );
 
 COMMIT TRANSACTION;
+GO
+
+CREATE VIEW dbo.vw_CurrentInventory
+AS
+SELECT
+    L.LocationCode,
+    L.LocationName,
+    LT.LocationTypeName,
+    P.ProductSKU,
+    P.ProductName,
+    PC.CategoryName,
+    I.QuantityOnHand,
+    U.UnitName,
+    I.ReorderPoint,
+    I.TargetStockLevel,
+    I.LastUpdated
+FROM dbo.Inventory AS I
+INNER JOIN dbo.Location AS L
+    ON L.LocationID = I.LocationID
+INNER JOIN dbo.LocationType AS LT
+    ON LT.LocationTypeID = L.LocationTypeID
+INNER JOIN dbo.Product AS P
+    ON P.ProductID = I.ProductID
+INNER JOIN dbo.ProductCategory AS PC
+    ON PC.ProductCategoryID = P.ProductCategoryID
+INNER JOIN dbo.UnitOfMeasure AS U
+    ON U.UnitOfMeasureID = P.UnitOfMeasureID;
+GO
+
+CREATE VIEW dbo.vw_LowStockInventory
+AS
+SELECT
+    L.LocationCode,
+    L.LocationName,
+    LT.LocationTypeName,
+    P.ProductSKU,
+    P.ProductName,
+    PC.CategoryName,
+    I.QuantityOnHand,
+    U.UnitName,
+    I.ReorderPoint,
+    I.TargetStockLevel,
+    I.LastUpdated
+FROM dbo.Inventory AS I
+INNER JOIN dbo.Location AS L
+    ON L.LocationID = I.LocationID
+INNER JOIN dbo.LocationType AS LT
+    ON LT.LocationTypeID = L.LocationTypeID
+INNER JOIN dbo.Product AS P
+    ON P.ProductID = I.ProductID
+INNER JOIN dbo.ProductCategory AS PC
+    ON PC.ProductCategoryID = P.ProductCategoryID
+INNER JOIN dbo.UnitOfMeasure AS U
+    ON U.UnitOfMeasureID = P.UnitOfMeasureID
+WHERE I.QuantityOnHand <= I.ReorderPoint;
+GO
+
+CREATE VIEW dbo.vw_OpenInventoryRequests
+AS
+SELECT
+    R.RequestID,
+    Requesting.LocationName AS RequestingLocation,
+    Fulfilling.LocationName AS FulfillingLocation,
+    CONCAT(E.FirstName, ' ', E.LastName) AS RequestedByEmployee,
+    R.RequestDate,
+    R.NeededByDate,
+    R.RequestStatus,
+    R.IsEmergency,
+    COUNT(RL.RequestLineID) AS NumberOfLines,
+    COALESCE(SUM(RL.QuantityRequested), 0) AS TotalQuantityRequested,
+    COALESCE(SUM(RL.QuantityApproved), 0) AS TotalQuantityApproved,
+    COALESCE(SUM(RL.QuantityFulfilled), 0) AS TotalQuantityFulfilled
+FROM dbo.InventoryRequest AS R
+INNER JOIN dbo.Location AS Requesting
+    ON Requesting.LocationID = R.RequestingLocationID
+INNER JOIN dbo.Location AS Fulfilling
+    ON Fulfilling.LocationID = R.FulfillingLocationID
+INNER JOIN dbo.Employee AS E
+    ON E.EmployeeID = R.RequestedByEmployeeID
+LEFT JOIN dbo.InventoryRequestLine AS RL
+    ON RL.RequestID = R.RequestID
+WHERE R.RequestStatus NOT IN ('Fulfilled', 'Cancelled')
+GROUP BY
+    R.RequestID,
+    Requesting.LocationName,
+    Fulfilling.LocationName,
+    E.FirstName,
+    E.LastName,
+    R.RequestDate,
+    R.NeededByDate,
+    R.RequestStatus,
+    R.IsEmergency;
+GO
 

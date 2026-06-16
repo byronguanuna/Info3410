@@ -1,38 +1,29 @@
-# Deferred Features
+# Deferred Or Removed Features
 
-The first transactional foundation intentionally leaves the following
-features for later team review or implementation:
+The reduced Burgers & Fries Supply System intentionally leaves out features
+that would make the project too large for the current INFO 3410 assignment.
 
+Deferred or removed features include:
+
+- Inventory movement history tables
+- Separate app-user authorization tables
+- Suppliers and distributors
+- Purchase orders
 - Lot numbers and expiration dates
-- Inventory balances by lot
-- Product recall tracking
-- External suppliers and distributors
-- External purchase orders and procurement workflows
-- Emergency or virtual warehouse location types
-- Automated parent location-type validation
-- Automated inventory balance updates
-- Automated request status and fulfillment maintenance
+- Product recalls
+- Point-of-sale sales records
+- Customer orders and receipts
+- Payment processing
+- Menu recipes and automatic recipe depletion
 - Route planning
 - Recurring shipping schedules
-- Point-of-sale sales records
-- Menu recipes and recipe depletion
-- Customer receipts and payment processing
-- Full authentication and login management
+- Stored procedures
+- Functions
+- Triggers
+- Data warehouse facts and dimensions
+- ETL and snapshot loading
 - Large sample-data generation
-- Data warehouse facts, dimensions, aggregates, loading, and snapshots
 
-## Future Lot Tracking Direction
-
-Complete lot tracking must preserve the remaining quantity of each lot at each
-location and follow that lot through every movement. A future design could use:
-
-- `InventoryLot` for the lot identifier, product, expiration date, and initial
-  receipt details
-- `LocationInventoryLot` for current lot quantities by location
-- `InventoryLotMovement` for auditable movement of lot quantities
-
-External receipts into main warehouses are the natural point to first record
-the lot ID and expiration date. No partial lot fields are included in the
-current schema because they would suggest traceability that the system cannot
-yet provide.
+The current version focuses only on locations, products, current inventory,
+employees, requests, shipments, and a few useful views.
 
