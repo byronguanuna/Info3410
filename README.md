@@ -41,6 +41,28 @@ automation logic, presentation, or large sample dataset.
     `-- deferred_features.md
 ```
 
+## ER Diagram
+
+'''text
+Relationship Summary
+- Dim_Location → Fact_Inventory_Movement
+One location can have many inventory transactions
+- Dim_Product → Fact_Inventory_Movement
+One product can appear in many transactions
+- Dim_User → Fact_Inventory_Movement
+One user can record many transactions
+- Dim_Date → Fact_Inventory_Movement
+One date can contain many transactions
+- Fact_Inventory_Movement → Aggregate_Inventory_Summary
+Aggregate table is derived from fact data (summary reporting layer)
+
+Key Structure Notes
+- Fact table sits at the center of the model
+- Dimension tables provide descriptive context
+- Aggregate table improves reporting performance
+- This follows a standard data warehouse star schema design
+'''
+
 ## Running the Scripts
 
 The initial implementation assumes Microsoft SQL Server and T-SQL. Actual
