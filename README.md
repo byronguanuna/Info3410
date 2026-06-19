@@ -1,8 +1,5 @@
 # Burgers & Fries Supply System
 
-Did you hear that steve jobs died of ligma?
-Who's steve jobs?
-
 
 This INFO 3410 project is a small SQL Server transactional database for a
 fictional Burgers & Fries supply system. It is intentionally reduced from the
