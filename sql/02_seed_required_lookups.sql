@@ -1,5 +1,5 @@
 /*
-    Required reference data for the Burgers & Fries transactional database.
+    Required lookup data for the reduced Burgers & Fries Supply System.
     This script is safe to rerun after 01_create_transactional_schema.sql.
 */
 
@@ -16,8 +16,8 @@ SELECT Seed.LocationTypeName, Seed.Description
 FROM
 (
     VALUES
-        ('Main Warehouse', 'Receives external inventory and supplies sub warehouses.'),
-        ('Sub Warehouse', 'Regional or city warehouse that supplies restaurants.'),
+        ('Main Warehouse', 'Main distribution warehouse.'),
+        ('Sub Warehouse', 'Regional or city warehouse.'),
         ('Restaurant', 'Burgers & Fries restaurant location.')
 ) AS Seed (LocationTypeName, Description)
 WHERE NOT EXISTS
@@ -68,43 +68,22 @@ WHERE NOT EXISTS
     WHERE Existing.CategoryName = Seed.CategoryName
 );
 
-INSERT INTO dbo.AppRole (RoleName, Description)
+INSERT INTO dbo.EmployeeRole (RoleName, Description)
 SELECT Seed.RoleName, Seed.Description
 FROM
 (
     VALUES
-        ('Administrator', 'Manages application-level configuration and access.'),
-        ('Warehouse Manager', 'Approves and oversees warehouse inventory activity.'),
-        ('Inventory Clerk', 'Records receipts, shipments, and inventory activity.'),
-        ('Restaurant Manager', 'Oversees restaurant requests and inventory activity.'),
-        ('Restaurant Employee', 'Records permitted restaurant inventory usage.'),
-        ('Auditor', 'Reviews inventory records and movement history.')
+        ('Warehouse Manager', 'Manages warehouse inventory activity.'),
+        ('Inventory Clerk', 'Records requests, shipments, and inventory counts.'),
+        ('Restaurant Manager', 'Manages restaurant inventory requests.'),
+        ('Restaurant Employee', 'Assists with restaurant inventory activity.'),
+        ('Auditor', 'Reviews inventory and shipment records.')
 ) AS Seed (RoleName, Description)
 WHERE NOT EXISTS
 (
     SELECT 1
-    FROM dbo.AppRole AS Existing
+    FROM dbo.EmployeeRole AS Existing
     WHERE Existing.RoleName = Seed.RoleName
-);
-
-INSERT INTO dbo.InventoryMovementType (MovementTypeName, Description)
-SELECT Seed.MovementTypeName, Seed.Description
-FROM
-(
-    VALUES
-        ('External Receipt', 'Inventory received by a main warehouse from outside the internal network.'),
-        ('Internal Transfer', 'Inventory moved between two internal locations.'),
-        ('Sold or Consumed', 'Summarized restaurant usage that reduces inventory.'),
-        ('Waste', 'Inventory discarded or lost.'),
-        ('Adjustment In', 'Positive inventory correction.'),
-        ('Adjustment Out', 'Negative inventory correction.'),
-        ('Return', 'Inventory returned from one internal location to another.')
-) AS Seed (MovementTypeName, Description)
-WHERE NOT EXISTS
-(
-    SELECT 1
-    FROM dbo.InventoryMovementType AS Existing
-    WHERE Existing.MovementTypeName = Seed.MovementTypeName
 );
 
 COMMIT TRANSACTION;
