@@ -9,7 +9,6 @@
 *.mdf
 *.ldf
 *.bak
-sql/Test.sql
 
 # Temporary and generated files
 *.log

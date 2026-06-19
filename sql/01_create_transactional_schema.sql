@@ -1,14 +1,20 @@
 /*
     Burgers & Fries Supply System
-    Reduced transactional database foundation for INFO 3410
+    Transactional database foundation for INFO 3410
     Microsoft SQL Server / T-SQL
 
     Clean-build warning:
-    This script drops and recreates this project's views and tables.
-    Running it will remove data stored in these project tables.
+    This script drops this project's views, procedures, functions, triggers,
+    warehouse tables, and transactional tables. It recreates only the
+    transactional schema. Run Schema/schema.sql afterward to create the
+    canonical star schema.
 */
 
 USE BurgersAndFries;
+GO
+
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
 GO
 
 SET NOCOUNT ON;
@@ -18,9 +24,32 @@ DROP VIEW IF EXISTS dbo.vw_OpenInventoryRequests;
 DROP VIEW IF EXISTS dbo.vw_LowStockInventory;
 DROP VIEW IF EXISTS dbo.vw_CurrentInventory;
 
+DROP PROCEDURE IF EXISTS dbo.usp_Snapshot_All;
+DROP PROCEDURE IF EXISTS dbo.usp_Snapshot_InventoryFact;
+DROP PROCEDURE IF EXISTS dbo.usp_Snapshot_Dimensions;
+
+DROP FUNCTION IF EXISTS dbo.ufn_GetLocationInventoryCost;
+DROP FUNCTION IF EXISTS dbo.ufn_GetTotalProductQuantity;
+DROP FUNCTION IF EXISTS dbo.ufn_GetFullDate;
+DROP FUNCTION IF EXISTS dbo.ufn_GetUsername;
+DROP FUNCTION IF EXISTS dbo.ufn_GetProductName;
+DROP FUNCTION IF EXISTS dbo.ufn_GetLocationName;
+
+DROP TRIGGER IF EXISTS dbo.trg_FactInventory_Update;
+DROP TRIGGER IF EXISTS dbo.trg_FactInventory_Delete;
+DROP TRIGGER IF EXISTS dbo.trg_FactInventory_Insert;
+
 BEGIN TRANSACTION;
 
-/* Drop current project tables in reverse dependency order. */
+/* Drop warehouse tables created by Schema/schema.sql in reverse dependency order. */
+DROP TABLE IF EXISTS dbo.Aggregate_Inventory_Summary;
+DROP TABLE IF EXISTS dbo.Fact_Inventory_Movement;
+DROP TABLE IF EXISTS dbo.Dim_Date;
+DROP TABLE IF EXISTS dbo.Dim_User;
+DROP TABLE IF EXISTS dbo.Dim_Product;
+DROP TABLE IF EXISTS dbo.Dim_Location;
+
+/* Drop transactional tables in reverse dependency order. */
 DROP TABLE IF EXISTS dbo.ShipmentLine;
 DROP TABLE IF EXISTS dbo.Shipment;
 DROP TABLE IF EXISTS dbo.InventoryRequestLine;
@@ -324,6 +353,15 @@ CREATE TABLE dbo.ShipmentLine
         (UnitCostAtShipment IS NULL OR UnitCostAtShipment >= 0)
 );
 
+CREATE INDEX IX_Inventory_ProductID
+    ON dbo.Inventory (ProductID);
+
+CREATE INDEX IX_InventoryRequest_RequestStatus
+    ON dbo.InventoryRequest (RequestStatus);
+
+CREATE INDEX IX_Shipment_ShipmentStatus
+    ON dbo.Shipment (ShipmentStatus);
+
 COMMIT TRANSACTION;
 GO
 
@@ -418,4 +456,3 @@ GROUP BY
     R.RequestStatus,
     R.IsEmergency;
 GO
-
