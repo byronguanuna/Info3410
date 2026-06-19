@@ -45,6 +45,10 @@ These views are intentionally basic and only use the transactional tables.
 
 The reduced version does not include separate app-user authorization tables,
 inventory movement history, suppliers, distributors, point-of-sale sales,
-customer orders, recipes, payments, route planning, lot tracking, stored
-procedures, triggers, data warehouse tables, ETL, or snapshot logic.
+customer orders, recipes, payments, route planning, or lot tracking.
+
+The project now includes a small data warehouse star schema, snapshot stored
+procedures, functions, and triggers. Those pieces support the assignment's
+warehouse-loading requirements without expanding the transactional model into
+an enterprise-scale system.
 

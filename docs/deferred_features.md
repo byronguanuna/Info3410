@@ -17,13 +17,10 @@ Deferred or removed features include:
 - Menu recipes and automatic recipe depletion
 - Route planning
 - Recurring shipping schedules
-- Stored procedures
-- Functions
-- Triggers
-- Data warehouse facts and dimensions
-- ETL and snapshot loading
 - Large sample-data generation
 
-The current version focuses only on locations, products, current inventory,
-employees, requests, shipments, and a few useful views.
+The current version focuses on locations, products, current inventory,
+employees, requests, shipments, a few useful views, and the required data
+warehouse snapshot support. The warehouse support includes facts, dimensions,
+an aggregate table, stored procedures, functions, and triggers.
 
