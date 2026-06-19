@@ -72,7 +72,7 @@ The DDL also creates three simple views:
 .
 |-- .gitignore
 |-- README.md
-|-- sql/
+|-- database/
 |   |-- 00_create_database.sql
 |   |-- 01_create_transactional_schema.sql
 |   |-- 02_seed_required_lookups.sql
@@ -154,12 +154,12 @@ Key Structure Notes
 
 - All dimension tables connect 1-to-many into Fact_Inventory_Movement
 - Aggregate table is derived from fact table for reporting performance
-- sql/03_create_warehouse_support.sql keeps the trigger-friendly snake_case
+- database/03_create_warehouse_support.sql keeps the trigger-friendly snake_case
   columns and function-friendly PascalCase columns compatible
 - This follows a standard data warehouse STAR SCHEMA design
 ```
 
-`sql/Test.sql` is a validation script for checking the built database.
+`database/Test.sql` is a validation script for checking the built database.
 
 ## Running the Scripts
 
@@ -169,11 +169,11 @@ artifacts and should not be shared in Git.
 
 Run the project scripts in this order:
 
-1. `sql/00_create_database.sql`
-2. `sql/01_create_transactional_schema.sql`
-3. `sql/02_seed_required_lookups.sql`
+1. `database/00_create_database.sql`
+2. `database/01_create_transactional_schema.sql`
+3. `database/02_seed_required_lookups.sql`
 4. `Schema/schema.sql`
-5. `sql/03_create_warehouse_support.sql`
+5. `database/03_create_warehouse_support.sql`
 6. `Functions/functions.sql`
 7. `Triggers/triggers.sql`
 
@@ -183,14 +183,14 @@ After the scripts are created, run the warehouse snapshot:
 EXEC dbo.usp_Snapshot_All @SnapshotDate = '2026-04-10';
 ```
 
-Then run `sql/Test.sql` to validate the tables, views, functions, triggers,
+Then run `database/Test.sql` to validate the tables, views, functions, triggers,
 procedures, seed data, snapshot rows, and constraints.
 
 When running `Schema/schema.sql`, `Functions/functions.sql`, or
 `Triggers/triggers.sql` manually, make sure the query window is connected to
 the `BurgersAndFries` database.
 
-Warning: `sql/01_create_transactional_schema.sql` is a clean-build script. It
+Warning: `database/01_create_transactional_schema.sql` is a clean-build script. It
 drops the project views, procedures, functions, triggers, warehouse tables,
 and transactional tables before recreating the transactional schema.
 

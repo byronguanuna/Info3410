@@ -249,7 +249,7 @@ SELECT
     CONVERT(VARCHAR(120), E.ExpectedCount),
     CONVERT(VARCHAR(120), A.ActualCount),
     CASE WHEN A.ActualCount = E.ExpectedCount THEN 'Pass' ELSE 'Fail' END,
-    'Expected exact count after running sql/01 and sql/02 once.'
+    'Expected exact count after running database/01 and database/02 once.'
 FROM ExpectedCounts AS E
 INNER JOIN ActualCounts AS A
     ON A.TableName = E.TableName;

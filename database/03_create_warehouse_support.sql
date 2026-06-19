@@ -2,11 +2,11 @@
     Warehouse support for the canonical star schema.
 
     Full build order:
-      1. sql/00_create_database.sql
-      2. sql/01_create_transactional_schema.sql
-      3. sql/02_seed_required_lookups.sql
+      1. database/00_create_database.sql
+      2. database/01_create_transactional_schema.sql
+      3. database/02_seed_required_lookups.sql
       4. Schema/schema.sql
-      5. sql/03_create_warehouse_support.sql
+      5. database/03_create_warehouse_support.sql
       6. Functions/functions.sql
       7. Triggers/triggers.sql
 
@@ -31,19 +31,19 @@ SET XACT_ABORT ON;
 GO
 
 IF OBJECT_ID(N'dbo.Dim_Location', N'U') IS NULL
-    RAISERROR('Run Schema/schema.sql before sql/03_create_warehouse_support.sql. Missing dbo.Dim_Location.', 16, 1);
+    RAISERROR('Run Schema/schema.sql before database/03_create_warehouse_support.sql. Missing dbo.Dim_Location.', 16, 1);
 
 IF OBJECT_ID(N'dbo.Dim_Product', N'U') IS NULL
-    RAISERROR('Run Schema/schema.sql before sql/03_create_warehouse_support.sql. Missing dbo.Dim_Product.', 16, 1);
+    RAISERROR('Run Schema/schema.sql before database/03_create_warehouse_support.sql. Missing dbo.Dim_Product.', 16, 1);
 
 IF OBJECT_ID(N'dbo.Dim_User', N'U') IS NULL
-    RAISERROR('Run Schema/schema.sql before sql/03_create_warehouse_support.sql. Missing dbo.Dim_User.', 16, 1);
+    RAISERROR('Run Schema/schema.sql before database/03_create_warehouse_support.sql. Missing dbo.Dim_User.', 16, 1);
 
 IF OBJECT_ID(N'dbo.Dim_Date', N'U') IS NULL
-    RAISERROR('Run Schema/schema.sql before sql/03_create_warehouse_support.sql. Missing dbo.Dim_Date.', 16, 1);
+    RAISERROR('Run Schema/schema.sql before database/03_create_warehouse_support.sql. Missing dbo.Dim_Date.', 16, 1);
 
 IF OBJECT_ID(N'dbo.Fact_Inventory_Movement', N'U') IS NULL
-    RAISERROR('Run Schema/schema.sql before sql/03_create_warehouse_support.sql. Missing dbo.Fact_Inventory_Movement.', 16, 1);
+    RAISERROR('Run Schema/schema.sql before database/03_create_warehouse_support.sql. Missing dbo.Fact_Inventory_Movement.', 16, 1);
 GO
 
 DROP TRIGGER IF EXISTS dbo.trg_FactInventory_Update;
